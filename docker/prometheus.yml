@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # G1GC instance on port 8080
+  - job_name: 'g1gc-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          gc_type: 'G1GC'
+          instance_name: 'g1gc'
+
+  # ZGC instance on port 8081  
+  - job_name: 'zgc-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          gc_type: 'ZGC'
+          instance_name: 'zgc'
