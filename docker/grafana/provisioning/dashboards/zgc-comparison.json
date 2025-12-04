@@ -1,0 +1,347 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "title": "ZGC: Generational vs Non-Generational Comparison",
+  "uid": "zgc-gen-vs-nongen",
+  "version": 1,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "tags": ["zgc", "comparison", "generational"],
+  "panels": [
+    {
+      "title": "GC Pause Time (ms) - Lower is Better",
+      "description": "Generational ZGC should have better pause times due to separate young/old generation handling",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
+          "legendFormat": "ZGC Gen - Max Pause",
+          "refId": "A"
+        },
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
+          "legendFormat": "ZGC NonGen - Max Pause",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - Max Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - Max Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Pause Count (Total)",
+      "description": "Number of GC pauses - both should be sub-millisecond",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
+          "legendFormat": "ZGC Gen - Total Pauses",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
+          "legendFormat": "ZGC NonGen - Total Pauses",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Heap Memory Used (MB)",
+      "description": "Memory consumption pattern - Gen ZGC should handle young objects more efficiently",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "ZGC Gen - Heap Used",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"zgc-nongen-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "ZGC NonGen - Heap Used",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Process CPU Usage",
+      "description": "CPU overhead - Gen ZGC may use slightly more CPU for generation tracking",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg(process_cpu_usage{job=\"zgc-app\"})",
+          "legendFormat": "ZGC Gen - CPU",
+          "refId": "A"
+        },
+        {
+          "expr": "avg(process_cpu_usage{job=\"zgc-nongen-app\"})",
+          "legendFormat": "ZGC NonGen - CPU",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Overhead (%) - Lower is Better",
+      "description": "Percentage of time spent in GC pauses - both should be minimal",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) * 100",
+          "legendFormat": "ZGC Gen - Overhead %",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-nongen-app\"}[1m])) * 100",
+          "legendFormat": "ZGC NonGen - Overhead %",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - Overhead %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - Overhead %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "HTTP Request Latency P99 (ms)",
+      "description": "Tail latency - Gen ZGC should have more consistent performance",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "ZGC Gen - P99 Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "ZGC NonGen - P99 Latency",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - P99 Latency" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - P99 Latency" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Allocation Rate (MB/s)",
+      "description": "Memory allocation throughput - should be similar for both",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "ZGC Gen - Allocation Rate",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-nongen-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "ZGC NonGen - Allocation Rate",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MBs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen - Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen - Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Summary Stats",
+      "description": "Key numbers at a glance",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
+          "legendFormat": "ZGC Gen Max Pause (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
+          "legendFormat": "ZGC NonGen Max Pause (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
+          "legendFormat": "ZGC Gen Total Pauses",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
+          "legendFormat": "ZGC NonGen Total Pauses",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen Max Pause (ms)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen Max Pause (ms)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC Gen Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC NonGen Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    }
+  ]
+}
