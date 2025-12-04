@@ -4,7 +4,7 @@
   },
   "title": "G1GC Detailed Metrics",
   "uid": "g1gc-detailed",
-  "version": 1,
+  "version": 3,
   "timezone": "browser",
   "schemaVersion": 38,
   "refresh": "5s",
@@ -21,12 +21,12 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "jvm_gc_pause_seconds_max{job=\"g1gc-app\"} * 1000",
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"g1gc-app\"}) * 1000",
           "legendFormat": "Max Pause",
           "refId": "A"
         },
         {
-          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m]) / rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m]) * 1000",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m])) / sum(rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m])) * 1000",
           "legendFormat": "Avg Pause",
           "refId": "B"
         }
@@ -51,8 +51,8 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m])",
-          "legendFormat": "{{action}} - {{cause}}",
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m]))",
+          "legendFormat": "Total Pause Rate",
           "refId": "A"
         }
       ],
@@ -106,13 +106,13 @@
     },
     {
       "title": "GC Cycle Duration (ms)",
-      "description": "Total time spent in GC cycles",
+      "description": "Time spent in GC per cycle type",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m]) * 1000",
-          "legendFormat": "{{action}} - {{cause}}",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m])) * 1000",
+          "legendFormat": "Total GC Time",
           "refId": "A"
         }
       ],
@@ -129,22 +129,22 @@
     },
     {
       "title": "Heap Memory Usage (MB)",
-      "description": "Heap memory before and after GC",
+      "description": "Heap memory utilization",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"} / 1024 / 1024",
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Used",
           "refId": "A"
         },
         {
-          "expr": "jvm_memory_committed_bytes{job=\"g1gc-app\", area=\"heap\"} / 1024 / 1024",
+          "expr": "max(jvm_memory_committed_bytes{job=\"g1gc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Committed",
           "refId": "B"
         },
         {
-          "expr": "jvm_memory_max_bytes{job=\"g1gc-app\", area=\"heap\"} / 1024 / 1024",
+          "expr": "max(jvm_memory_max_bytes{job=\"g1gc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Max",
           "refId": "C"
         }
@@ -167,9 +167,19 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"} / 1024 / 1024",
-          "legendFormat": "{{id}}",
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", id=~\".*Eden.*\"}) / 1024 / 1024",
+          "legendFormat": "Eden Space",
           "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", id=~\".*Old.*\"}) / 1024 / 1024",
+          "legendFormat": "Old Gen",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", id=~\".*Survivor.*\"}) / 1024 / 1024",
+          "legendFormat": "Survivor Space",
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -224,7 +234,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
       "targets": [
         {
-          "expr": "rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m]) / 1024 / 1024",
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024",
           "legendFormat": "Allocation Rate",
           "refId": "A"
         }
@@ -247,7 +257,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
       "targets": [
         {
-          "expr": "rate(jvm_gc_memory_promoted_bytes_total{job=\"g1gc-app\"}[1m]) / 1024 / 1024",
+          "expr": "sum(rate(jvm_gc_memory_promoted_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024",
           "legendFormat": "Promotion Rate",
           "refId": "A"
         }
@@ -270,12 +280,12 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
       "targets": [
         {
-          "expr": "process_cpu_usage{job=\"g1gc-app\"}",
+          "expr": "avg(process_cpu_usage{job=\"g1gc-app\"})",
           "legendFormat": "Process CPU",
           "refId": "A"
         },
         {
-          "expr": "system_cpu_usage{job=\"g1gc-app\"}",
+          "expr": "avg(system_cpu_usage{job=\"g1gc-app\"})",
           "legendFormat": "System CPU",
           "refId": "B"
         }
@@ -294,23 +304,23 @@
       }
     },
     {
-      "title": "HTTP Request Latency",
+      "title": "HTTP Request Latency (ms)",
       "description": "API response time percentiles",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m])) * 1000",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
           "legendFormat": "P99",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m])) * 1000",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
           "legendFormat": "P95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.50, rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m])) * 1000",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
           "legendFormat": "P50",
           "refId": "C"
         }
@@ -333,9 +343,19 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
       "targets": [
         {
-          "expr": "increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m])",
-          "legendFormat": "{{action}} - {{cause}}",
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"G1 Evacuation Pause\"}[1m]))",
+          "legendFormat": "G1 Evacuation Pause",
           "refId": "A"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"Metadata GC Threshold\"}[1m]))",
+          "legendFormat": "Metadata GC Threshold",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"G1 Humongous Allocation\"}[1m]))",
+          "legendFormat": "Humongous Allocation",
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -357,12 +377,12 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 32 },
       "targets": [
         {
-          "expr": "jvm_threads_live_threads{job=\"g1gc-app\"}",
+          "expr": "sum(jvm_threads_live_threads{job=\"g1gc-app\"})",
           "legendFormat": "Live Threads",
           "refId": "A"
         },
         {
-          "expr": "jvm_threads_daemon_threads{job=\"g1gc-app\"}",
+          "expr": "sum(jvm_threads_daemon_threads{job=\"g1gc-app\"})",
           "legendFormat": "Daemon Threads",
           "refId": "B"
         }
@@ -395,7 +415,7 @@
           "refId": "B"
         },
         {
-          "expr": "jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"} / 1024 / 1024",
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Used (MB)",
           "refId": "C"
         }
