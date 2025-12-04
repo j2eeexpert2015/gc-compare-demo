@@ -2,8 +2,6 @@
 
 A Spring Boot application to compare G1GC and ZGC garbage collectors using Prometheus and Grafana.
 
-Inspired by [Vishalendu's Java GC Demo](https://dev.to/vishalendu/comparing-java-23-gc-types-4aj).
-
 ## Prerequisites
 
 - **Java 21+** (for Generational ZGC support)
@@ -33,20 +31,51 @@ java -XX:+UseG1GC -Xms512m -Xmx512m -Dserver.port=8080 -Dspring.application.name
 java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### 5. Verify Both Apps
+### 5. Start ZGC Non-Generational App (Terminal 3) - Optional
+```batch
+java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+### 6. Verify Apps
 ```batch
 curl http://localhost:8080/api/memory/info
 curl http://localhost:8081/api/memory/info
+curl http://localhost:8082/api/memory/info
 ```
 
-### 6. Run Load Test
+### 7. Run Load Test
+
+**For G1GC vs ZGC Gen (2 instances):**
 ```batch
 for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
 ```
 
-### 7. View Dashboards
+**For All Three GCs (3 instances):**
+```batch
+for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & curl -s -X POST http://localhost:8082/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
+```
+
+### 8. View Dashboards
 
 Open http://localhost:3000 (admin/password)
+
+## Grafana Dashboards
+
+Six dashboards are provided:
+
+| Dashboard | Purpose | Key Panels |
+|-----------|---------|------------|
+| **G1GC vs ZGC Comparison** | Side-by-side comparison | Pause Time, Pause Count, Heap, CPU, Overhead, P99 Latency |
+| **All Three GCs Comparison** | G1GC vs ZGC Gen vs ZGC NonGen | Same metrics showing all three collectors |
+| **ZGC: Generational vs Non-Generational** | Compare ZGC modes | Same metrics showing Gen vs NonGen differences |
+| **G1GC Detailed Metrics** | Deep dive into G1GC | + GC Events by Cause (Evacuation Pause, Humongous Allocation) |
+| **ZGC Detailed Metrics** | Deep dive into ZGC Generational | + ZGC Cycles by Reason (Allocation Stall ⚠️, Proactive, Warmup) |
+| **ZGC Non-Generational Detailed Metrics** | Deep dive into ZGC NonGen | Same detailed metrics for NonGen mode |
+
+### Color Scheme
+- 🔴 **Red** = G1GC
+- 🟢 **Green** = ZGC Generational
+- 🔵 **Blue** = ZGC Non-Generational
 
 ---
 
@@ -127,6 +156,14 @@ gc-compare-demo/
 │   ├── docker-compose.yml
 │   ├── prometheus.yml
 │   └── grafana/provisioning/
+│       ├── datasources/
+│       └── dashboards/
+│           ├── gc-compare.json
+│           ├── gc-all-three-compare.json (NEW)
+│           ├── g1gc-detailed.json
+│           ├── zgc-detailed.json
+│           ├── zgc-nongen-detailed.json (NEW)
+│           └── zgc-comparison.json
 ├── scripts/
 │   ├── run-g1gc.bat
 │   ├── run-zgc.bat
@@ -160,6 +197,30 @@ curl -X POST "http://localhost:8080/api/memory/sustained?duration=10&rate=5"
 ```
 
 ## Troubleshooting
+
+**New dashboards not appearing?**
+- Restart Docker containers to load new dashboard files:
+  ```batch
+  docker-compose restart
+  ```
+- Wait 10-20 seconds for Grafana to reload
+- Refresh the Grafana page in your browser
+
+**Prometheus not scraping new ports (8082)?**
+- Restart Docker to pick up prometheus.yml changes:
+  ```batch
+  docker-compose down
+  docker-compose up -d
+  ```
+- Check Prometheus targets: http://localhost:9090/targets
+
+**Want to clear all metrics data and start fresh?**
+- Remove all stored metrics and restart:
+  ```batch
+  docker-compose down -v
+  docker-compose up -d
+  ```
+- The `-v` flag removes volumes with all historical data
 
 **Prometheus not scraping?**
 - Check `host.docker.internal` resolves (Docker Desktop feature)
@@ -211,187 +272,3 @@ for /L %i in (1,1,30) do @(curl -s -X POST http://localhost:8080/api/memory/load
 ```batch
 docker-compose down
 ```
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/memory/info` | GET | JVM and GC info |
-| `/api/memory/load/{count}` | POST | Allocate count * 10MB of garbage |
-| `/api/memory/sustained` | POST | Sustained allocation over time |
-| `/api/memory/gc-stats` | GET | Current GC statistics |
-| `/actuator/prometheus` | GET | Prometheus metrics |
-
-## Key Metrics Compared
-
-| Metric | What it Shows |
-|--------|---------------|
-| **GC Pause Time** | How long the JVM stops (lower = better) |
-| **GC Pause Count** | Number of GC events |
-| **Heap Memory Used** | Memory consumption pattern |
-| **Process CPU Usage** | CPU overhead of GC |
-| **GC Overhead** | % time spent in GC |
-| **HTTP Request Latency P99** | Tail latency impact |
-| **Allocation Rate** | Memory allocation throughput |
-
-## Expected Results
-
-Based on Vishalendu's findings and typical production workloads:
-
-| Metric | G1GC | ZGC (Generational) |
-|--------|------|-------------------|
-| **Max Pause Time** | 50-200ms+ | <1ms |
-| **CPU Overhead** | Higher spikes | Lower, consistent |
-| **GC Overhead** | 5-15% | <1% |
-| **P99 Latency** | Spiky | Consistent |
-| **Pause Count** | Lower | Higher (but sub-ms) |
-| **Throughput** | Slightly higher | Slightly lower |
-
-### Real-World Trade-offs
-
-**Choose G1GC when:**
-- ✅ Batch processing jobs
-- ✅ Throughput > latency
-- ✅ Heap size < 4GB
-- ✅ Occasional 50-100ms pauses are acceptable
-- ✅ Budget-constrained (older hardware OK)
-
-**Choose ZGC when:**
-- ✅ User-facing APIs
-- ✅ Latency-critical systems (trading, gaming, real-time)
-- ✅ Large heaps (8GB+)
-- ✅ Predictable P99/P999 latency required
-- ✅ Modern hardware available (Java 21+)
-
-## Project Structure
-
-```
-gc-compare-demo/
-├── pom.xml
-├── src/main/java/com/example/gcdemo/
-│   ├── GcCompareDemoApplication.java
-│   ├── controller/MemoryController.java
-│   └── service/MemoryLoadService.java
-├── src/main/resources/
-│   └── application.yml
-├── docker/
-│   ├── docker-compose.yml
-│   ├── prometheus.yml
-│   └── grafana/provisioning/
-│       ├── datasources/prometheus.yml
-│       └── dashboards/
-│           ├── gc-compare.json
-│           ├── g1gc-detailed.json
-│           ├── zgc-detailed.json
-│           └── zgc-comparison.json (NEW)
-├── scripts/
-│   ├── run-g1gc.bat
-│   ├── run-zgc.bat
-│   └── load-test.bat
-└── README.md
-```
-
-## Customization
-
-### Adjust Heap Size
-
-```batch
-# Smaller heap = more GC pressure (better for demos)
--Xms256m -Xmx256m
-
-# Larger heap = less frequent GC (more realistic production)
--Xms1g -Xmx1g
-```
-
-### Adjust Load Pattern
-
-Modify the load test parameters:
-
-**Light Load (500MB):**
-```batch
-curl -X POST http://localhost:8080/api/memory/load/50
-```
-
-**Heavy Load (2GB - may cause OutOfMemoryError with 512MB heap):**
-```batch
-curl -X POST http://localhost:8080/api/memory/load/200
-```
-
-**Sustained Load (10 seconds, 5 objects/sec):**
-```batch
-curl -X POST "http://localhost:8080/api/memory/sustained?duration=10&rate=5"
-```
-
-### Different GC Configurations
-
-**G1GC with custom pause target:**
-```batch
-java -XX:+UseG1GC -XX:MaxGCPauseMillis=50 -Xms512m -Xmx512m -Dserver.port=8080 -jar target\gc-compare-demo-1.0.0.jar
-```
-
-**ZGC with custom concurrency:**
-```batch
-java -XX:+UseZGC -XX:+ZGenerational -XX:ConcGCThreads=2 -Xms512m -Xmx512m -Dserver.port=8081 -jar target\gc-compare-demo-1.0.0.jar
-```
-
-## Troubleshooting
-
-### Prometheus not scraping?
-
-1. Check `host.docker.internal` resolves (Docker Desktop feature)
-2. Verify apps are running on correct ports:
-   ```batch
-   curl http://localhost:8080/actuator/prometheus
-   curl http://localhost:8081/actuator/prometheus
-   curl http://localhost:8082/actuator/prometheus
-   ```
-3. Check Prometheus targets: http://localhost:9090/targets
-
-### Grafana dashboard empty?
-
-1. Wait 30-60 seconds for metrics to populate
-2. Check Prometheus is receiving data: http://localhost:9090/graph
-3. Try running a load test to generate metrics
-4. Verify datasource connection in Grafana
-
-### OutOfMemoryError?
-
-1. Reduce load count: `/api/memory/load/10` instead of `/load/100`
-2. Increase heap: `-Xms1g -Xmx1g`
-
-### Docker permission denied?
-
-Ensure Docker Desktop is running and has proper permissions.
-
-### Port already in use?
-
-Kill existing processes:
-```batch
-# Find process using port 8080
-netstat -ano | findstr :8080
-
-# Kill process (replace PID)
-taskkill /PID <PID> /F
-```
-
-## Learning Resources
-
-- **Original Blog**: [Comparing Java 23 GC Types](https://dev.to/vishalendu/comparing-java-23-gc-types-4aj)
-- **Original Repo**: [java-gc-demo](https://github.com/vishalendu/java-gc-demo)
-- **Supplement**: [java-gc-demo-supplement](https://github.com/vishalendu/java-gc-demo-supplement)
-- **Oracle ZGC Docs**: [Java 21 ZGC Guide](https://docs.oracle.com/en/java/javase/21/gctuning/z-garbage-collector.html)
-
-## License
-
-MIT License - feel free to use for educational purposes.
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## Author
-
-Created for educational purposes to demonstrate real-world GC performance differences.
