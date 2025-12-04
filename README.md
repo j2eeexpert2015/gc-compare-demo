@@ -21,29 +21,34 @@ mvn clean package -DskipTests
 docker-compose up -d
 ```
 
-### 3. Start G1GC App (Terminal 1)
+### 3. Create Logs Directory (for JFR recordings)
 ```batch
-java -XX:+UseG1GC -Xms512m -Xmx512m -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+mkdir logs
 ```
 
-### 4. Start ZGC App (Terminal 2)
+### 4. Start G1GC App (Terminal 1)
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseG1GC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### 5. Start ZGC Non-Generational App (Terminal 3) - Optional
+### 5. Start ZGC App (Terminal 2)
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### 6. Verify Apps
+### 6. Start ZGC Non-Generational App (Terminal 3) - Optional
+```batch
+java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+### 7. Verify Apps
 ```batch
 curl http://localhost:8080/api/memory/info
 curl http://localhost:8081/api/memory/info
 curl http://localhost:8082/api/memory/info
 ```
 
-### 7. Run Load Test
+### 8. Run Load Test
 
 **For G1GC vs ZGC Gen (2 instances):**
 ```batch
@@ -55,7 +60,7 @@ for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load
 for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & curl -s -X POST http://localhost:8082/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
 ```
 
-### 8. View Dashboards
+### 9. View Dashboards
 
 Open http://localhost:3000 (admin/password)
 
@@ -83,12 +88,12 @@ Six dashboards are provided:
 
 ### 1. Start ZGC Generational (Terminal 1)
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 2. Start ZGC Non-Generational (Terminal 2)
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 3. Verify Both Apps
@@ -196,6 +201,23 @@ curl -X POST http://localhost:8080/api/memory/load/100
 curl -X POST "http://localhost:8080/api/memory/sustained?duration=10&rate=5"
 ```
 
+## Java Flight Recorder (JFR)
+
+All commands include JFR recording enabled with `-XX:StartFlightRecording=filename=logs/[name].jfr`
+
+**JFR Files Generated:**
+- `logs/g1gc-recording.jfr` - G1GC performance data
+- `logs/zgc-gen-recording.jfr` - ZGC Generational performance data
+- `logs/zgc-nongen-recording.jfr` - ZGC Non-Generational performance data
+
+**Analyze JFR Files:**
+- Open with JDK Mission Control (JMC): `jmc`
+- Or use IntelliJ IDEA: File → Open → Select .jfr file
+- Or VisualVM with JFR plugin
+
+**Disable JFR (if not needed):**
+Remove `-XX:StartFlightRecording=filename=logs/[name].jfr` from the command
+
 ## Troubleshooting
 
 **New dashboards not appearing?**
@@ -250,17 +272,17 @@ docker-compose up -d
 
 **Run G1GC:**
 ```batch
-java -XX:+UseG1GC -Xms512m -Xmx512m -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseG1GC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Run ZGC:**
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Run ZGC Non-Generational:**
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=logs/zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Load Test (30 iterations):**
