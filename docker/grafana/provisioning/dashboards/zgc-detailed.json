@@ -15,25 +15,25 @@
   "tags": ["gc", "zgc", "jvm"],
   "panels": [
     {
-      "title": "GC Pause Time (ms)",
-      "description": "Stop-the-world pause duration - ZGC target: <1ms",
+      "title": "GC Pause Time (µs)",
+      "description": "Stop-the-world pause duration - ZGC target: <1000µs (1ms)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000000",
           "legendFormat": "Max Pause",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) / sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\"}[1m])) * 1000",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) / sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\"}[1m])) * 1000000",
           "legendFormat": "Avg Pause",
           "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "unit": "µs",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
@@ -376,8 +376,8 @@
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 32 },
       "targets": [
         {
-          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
-          "legendFormat": "Max Pause (ms)",
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000000",
+          "legendFormat": "Max Pause (µs)",
           "refId": "A"
         },
         {
