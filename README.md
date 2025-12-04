@@ -2,8 +2,6 @@
 
 A Spring Boot application to compare G1GC and ZGC garbage collectors using Prometheus and Grafana.
 
-Inspired by [Vishalendu's Java GC Demo](https://dev.to/vishalendu/comparing-java-23-gc-types-4aj).
-
 ## Prerequisites
 
 - **Java 21+** (for Generational ZGC support)
@@ -33,31 +31,46 @@ java -XX:+UseG1GC -Xms512m -Xmx512m -Dserver.port=8080 -Dspring.application.name
 java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### 5. Verify Both Apps
+### 5. Start ZGC Non-Generational App (Terminal 3) - Optional
+```batch
+java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+### 6. Verify Apps
 ```batch
 curl http://localhost:8080/api/memory/info
 curl http://localhost:8081/api/memory/info
+curl http://localhost:8082/api/memory/info
 ```
 
-### 6. Run Load Test
+### 7. Run Load Test
+
+**For G1GC vs ZGC Gen (2 instances):**
 ```batch
 for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
 ```
 
-### 7. View Dashboards
+**For All Three GCs (3 instances):**
+```batch
+for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & curl -s -X POST http://localhost:8082/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
+```
+
+### 8. View Dashboards
 
 Open http://localhost:3000 (admin/password)
 
 ## Grafana Dashboards
 
-Four dashboards are provided:
+Six dashboards are provided:
 
 | Dashboard | Purpose | Key Panels |
 |-----------|---------|------------|
 | **G1GC vs ZGC Comparison** | Side-by-side comparison | Pause Time, Pause Count, Heap, CPU, Overhead, P99 Latency |
+| **All Three GCs Comparison** | G1GC vs ZGC Gen vs ZGC NonGen | Same metrics showing all three collectors |
 | **ZGC: Generational vs Non-Generational** | Compare ZGC modes | Same metrics showing Gen vs NonGen differences |
 | **G1GC Detailed Metrics** | Deep dive into G1GC | + GC Events by Cause (Evacuation Pause, Humongous Allocation) |
-| **ZGC Detailed Metrics** | Deep dive into ZGC | + ZGC Cycles by Reason (Allocation Stall ⚠️, Proactive, Warmup) |
+| **ZGC Detailed Metrics** | Deep dive into ZGC Generational | + ZGC Cycles by Reason (Allocation Stall ⚠️, Proactive, Warmup) |
+| **ZGC Non-Generational Detailed Metrics** | Deep dive into ZGC NonGen | Same detailed metrics for NonGen mode |
 
 ### Color Scheme
 - 🔴 **Red** = G1GC
@@ -143,6 +156,14 @@ gc-compare-demo/
 │   ├── docker-compose.yml
 │   ├── prometheus.yml
 │   └── grafana/provisioning/
+│       ├── datasources/
+│       └── dashboards/
+│           ├── gc-compare.json
+│           ├── gc-all-three-compare.json (NEW)
+│           ├── g1gc-detailed.json
+│           ├── zgc-detailed.json
+│           ├── zgc-nongen-detailed.json (NEW)
+│           └── zgc-comparison.json
 ├── scripts/
 │   ├── run-g1gc.bat
 │   ├── run-zgc.bat
@@ -227,25 +248,3 @@ for /L %i in (1,1,30) do @(curl -s -X POST http://localhost:8080/api/memory/load
 ```batch
 docker-compose down
 ```
-
-## Learning Resources
-
-- **Original Blog**: [Comparing Java 23 GC Types](https://dev.to/vishalendu/comparing-java-23-gc-types-4aj)
-- **Original Repo**: [java-gc-demo](https://github.com/vishalendu/java-gc-demo)
-- **Supplement**: [java-gc-demo-supplement](https://github.com/vishalendu/java-gc-demo-supplement)
-- **Oracle ZGC Docs**: [Java 21 ZGC Guide](https://docs.oracle.com/en/java/javase/21/gctuning/z-garbage-collector.html)
-
-## License
-
-MIT License - feel free to use for educational purposes.
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## Author
-
-Created for educational purposes to demonstrate real-world GC performance differences.
