@@ -4,7 +4,7 @@
   },
   "title": "G1GC Detailed Metrics",
   "uid": "g1gc-detailed",
-  "version": 4,
+  "version": 5,
   "timezone": "browser",
   "schemaVersion": 38,
   "refresh": "5s",
@@ -53,39 +53,10 @@
       }
     },
     {
-      "title": "GC Pause Rate (per second)",
-      "description": "Number of GC pauses per second",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m]))",
-          "legendFormat": "Pause Rate",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Pause Rate" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
-          }
-        ]
-      }
-    },
-    {
       "title": "GC Pause Count (Total)",
       "description": "Cumulative number of GC pauses",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"g1gc-app\"})",
@@ -109,6 +80,35 @@
         "colorMode": "value",
         "graphMode": "area",
         "textMode": "value"
+      }
+    },
+    {
+      "title": "GC Pause Rate (per second)",
+      "description": "Number of GC pauses per second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"g1gc-app\"}[1m]))",
+          "legendFormat": "Pause Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Pause Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
       }
     },
     {
@@ -190,53 +190,20 @@
       }
     },
     {
-      "title": "GC Overhead (%)",
-      "description": "Percentage of time spent in GC",
-      "type": "gauge",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m]))",
-          "legendFormat": "GC Overhead",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "max": 0.2,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.05 },
-              { "color": "red", "value": 0.1 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        }
-      }
-    },
-    {
-      "title": "Allocation Rate (MB/s)",
-      "description": "Memory allocation throughput",
+      "title": "GC Overhead (%) - Lower is Better",
+      "description": "Percentage of time spent in GC pauses",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024",
-          "legendFormat": "Allocation Rate",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m])) * 100",
+          "legendFormat": "GC Overhead %",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "MBs",
+          "unit": "percent",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
@@ -245,17 +212,17 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Allocation Rate" },
+            "matcher": { "id": "byName", "options": "GC Overhead %" },
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           }
         ]
       }
     },
     {
-      "title": "HTTP Request Latency (ms)",
-      "description": "API response time percentiles",
+      "title": "HTTP Request Latency P99 (ms)",
+      "description": "Tail latency - shows real app impact",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
           "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
@@ -299,10 +266,96 @@
       }
     },
     {
+      "title": "Allocation Rate (MB/s)",
+      "description": "Memory allocation throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "Allocation Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MBs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Events by Cause",
+      "description": "Why GC was triggered - Evacuation Pause, Humongous Allocation, etc.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"G1 Evacuation Pause\"}[1m]))",
+          "legendFormat": "G1 Evacuation Pause",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"Metadata GC Threshold\"}[1m]))",
+          "legendFormat": "Metadata GC Threshold",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"G1 Humongous Allocation\"}[1m]))",
+          "legendFormat": "Humongous Allocation",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"G1 Preventive Collection\"}[1m]))",
+          "legendFormat": "Preventive Collection",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 50,
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "G1 Evacuation Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Metadata GC Threshold" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Humongous Allocation" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Preventive Collection" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
       "title": "G1GC Summary",
       "description": "Key metrics at a glance",
       "type": "stat",
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 32 },
       "targets": [
         {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"g1gc-app\"}) * 1000",
