@@ -1,0 +1,419 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "title": "ZGC Non-Generational Detailed Metrics",
+  "uid": "zgc-nongen-detailed",
+  "version": 4,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "tags": ["gc", "zgc", "nongen", "jvm"],
+  "panels": [
+    {
+      "title": "GC Pause Time (ms)",
+      "description": "Stop-the-world pause duration - ZGC NonGen target: <1ms",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
+          "legendFormat": "Max Pause",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-nongen-app\"}[1m])) / sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"}[1m])) * 1000",
+          "legendFormat": "Avg Pause",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Max Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Pause Rate (per second)",
+      "description": "Number of GC pauses per second - NonGen may have different pattern than Generational",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"}[1m]))",
+          "legendFormat": "Pause Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Pause Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Pause Count (Total)",
+      "description": "Cumulative number of GC pauses",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
+          "legendFormat": "Total Pauses",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "title": "Heap Memory Usage (MB)",
+      "description": "Heap memory utilization - NonGen treats all objects uniformly",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"zgc-nongen-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "Heap Used",
+          "refId": "A"
+        },
+        {
+          "expr": "max(jvm_memory_max_bytes{job=\"zgc-nongen-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "Heap Max",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Heap Max" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Process CPU Usage",
+      "description": "JVM process CPU utilization - NonGen does concurrent work",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg(process_cpu_usage{job=\"zgc-nongen-app\"})",
+          "legendFormat": "Process CPU",
+          "refId": "A"
+        },
+        {
+          "expr": "avg(system_cpu_usage{job=\"zgc-nongen-app\"})",
+          "legendFormat": "System CPU",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Process CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "System CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "GC Overhead (%)",
+      "description": "Percentage of time spent in GC - NonGen should be near zero",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-nongen-app\"}[1m]))",
+          "legendFormat": "GC Overhead",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 0.05,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.03 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      }
+    },
+    {
+      "title": "Allocation Rate (MB/s)",
+      "description": "Memory allocation throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-nongen-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "Allocation Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MBs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "HTTP Request Latency (ms)",
+      "description": "API response time percentiles - should be consistent",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "P99",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "P50",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "P99" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P95" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P50" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "ZGC NonGen Cycles by Reason",
+      "description": "Why ZGC cycles are triggered - Allocation Rate, Proactive, Warmup, etc.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
+      "targets": [
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", action=\"end of major GC\"}[1m]))",
+          "legendFormat": "Major GC Cycles",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Allocation Rate\"}[1m]))",
+          "legendFormat": "Allocation Rate",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Proactive\"}[1m]))",
+          "legendFormat": "Proactive",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Warmup\"}[1m]))",
+          "legendFormat": "Warmup",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Allocation Stall\"}[1m]))",
+          "legendFormat": "⚠️ Allocation Stall",
+          "refId": "E"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "⚠️ Allocation Stall" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Allocation Rate" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Proactive" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Warmup" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "title": "ZGC NonGen Summary",
+      "description": "Key metrics at a glance",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 38 },
+      "targets": [
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
+          "legendFormat": "Max Pause (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
+          "legendFormat": "Total Pauses",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"zgc-nongen-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "Heap Used (MB)",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-nongen-app\"}[1m])) * 100",
+          "legendFormat": "GC Overhead (%)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    }
+  ]
+}

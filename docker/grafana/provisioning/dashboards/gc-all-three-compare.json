@@ -2,8 +2,8 @@
   "annotations": {
     "list": []
   },
-  "title": "ZGC: Generational vs Non-Generational Comparison",
-  "uid": "zgc-gen-vs-nongen",
+  "title": "All Three GCs Comparison",
+  "uid": "gc-all-three-compare",
   "version": 1,
   "timezone": "browser",
   "schemaVersion": 38,
@@ -12,28 +12,33 @@
     "from": "now-15m",
     "to": "now"
   },
-  "tags": ["zgc", "comparison", "generational"],
+  "tags": ["gc", "comparison", "all"],
   "panels": [
     {
-      "title": "GC Pause Time (μs) - Lower is Better",
-      "description": "Generational ZGC should have better pause times due to separate young/old generation handling - shown in microseconds for precision",
+      "title": "GC Pause Time (ms) - Lower is Better",
+      "description": "Max pause duration comparison - G1GC vs ZGC Gen vs ZGC NonGen",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000000",
-          "legendFormat": "ZGC Gen - Max Pause",
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"g1gc-app\"}) * 1000",
+          "legendFormat": "G1GC - Max Pause",
           "refId": "A"
         },
         {
-          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000000",
-          "legendFormat": "ZGC NonGen - Max Pause",
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
+          "legendFormat": "ZGC Gen - Max Pause",
           "refId": "B"
+        },
+        {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
+          "legendFormat": "ZGC NonGen - Max Pause",
+          "refId": "C"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "µs",
+          "unit": "ms",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
@@ -43,6 +48,10 @@
           }
         },
         "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "G1GC - Max Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
           {
             "matcher": { "id": "byName", "options": "ZGC Gen - Max Pause" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
@@ -56,19 +65,24 @@
     },
     {
       "title": "GC Pause Count (Total)",
-      "description": "Number of GC pauses - both should be sub-millisecond",
+      "description": "Cumulative GC pauses - ZGCs have more frequent but tiny pauses",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "targets": [
         {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"g1gc-app\"})",
+          "legendFormat": "G1GC - Total Pauses",
+          "refId": "A"
+        },
+        {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
           "legendFormat": "ZGC Gen - Total Pauses",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
           "legendFormat": "ZGC NonGen - Total Pauses",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -82,6 +96,10 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC - Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen - Total Pauses" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
@@ -94,19 +112,24 @@
     },
     {
       "title": "Heap Memory Used (MB)",
-      "description": "Memory consumption pattern - Gen ZGC should handle young objects more efficiently",
+      "description": "Memory consumption pattern across all three GCs",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
+          "expr": "sum(jvm_memory_used_bytes{job=\"g1gc-app\", area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "G1GC - Heap Used",
+          "refId": "A"
+        },
+        {
           "expr": "sum(jvm_memory_used_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "ZGC Gen - Heap Used",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "sum(jvm_memory_used_bytes{job=\"zgc-nongen-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "ZGC NonGen - Heap Used",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -120,6 +143,10 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC - Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen - Heap Used" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
@@ -132,19 +159,24 @@
     },
     {
       "title": "Process CPU Usage",
-      "description": "CPU overhead - Gen ZGC may use slightly more CPU for generation tracking",
+      "description": "CPU overhead comparison - G1GC spiky vs ZGCs consistent",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
+          "expr": "avg(process_cpu_usage{job=\"g1gc-app\"})",
+          "legendFormat": "G1GC - CPU",
+          "refId": "A"
+        },
+        {
           "expr": "avg(process_cpu_usage{job=\"zgc-app\"})",
           "legendFormat": "ZGC Gen - CPU",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "avg(process_cpu_usage{job=\"zgc-nongen-app\"})",
           "legendFormat": "ZGC NonGen - CPU",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -160,6 +192,10 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC - CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen - CPU" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
@@ -172,19 +208,24 @@
     },
     {
       "title": "GC Overhead (%) - Lower is Better",
-      "description": "Percentage of time spent in GC pauses - both should be minimal",
+      "description": "Percentage of time spent in GC pauses",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"g1gc-app\"}[1m])) * 100",
+          "legendFormat": "G1GC - Overhead %",
+          "refId": "A"
+        },
+        {
           "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) * 100",
           "legendFormat": "ZGC Gen - Overhead %",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-nongen-app\"}[1m])) * 100",
           "legendFormat": "ZGC NonGen - Overhead %",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -198,6 +239,10 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC - Overhead %" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen - Overhead %" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
@@ -210,19 +255,24 @@
     },
     {
       "title": "HTTP Request Latency P99 (ms)",
-      "description": "Tail latency - Gen ZGC should have more consistent performance",
+      "description": "Tail latency - shows real app impact",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "legendFormat": "G1GC - P99 Latency",
+          "refId": "A"
+        },
+        {
           "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
           "legendFormat": "ZGC Gen - P99 Latency",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
           "legendFormat": "ZGC NonGen - P99 Latency",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -236,6 +286,10 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC - P99 Latency" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen - P99 Latency" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
@@ -248,19 +302,24 @@
     },
     {
       "title": "Allocation Rate (MB/s)",
-      "description": "Memory allocation throughput - should be similar for both",
+      "description": "Confirms equal load on all instances",
       "type": "timeseries",
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 24 },
       "targets": [
         {
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "G1GC - Allocation Rate",
+          "refId": "A"
+        },
+        {
           "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024",
           "legendFormat": "ZGC Gen - Allocation Rate",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-nongen-app\"}[1m])) / 1024 / 1024",
           "legendFormat": "ZGC NonGen - Allocation Rate",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "fieldConfig": {
@@ -273,6 +332,10 @@
           }
         },
         "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "G1GC - Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
           {
             "matcher": { "id": "byName", "options": "ZGC Gen - Allocation Rate" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
@@ -291,24 +354,34 @@
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
       "targets": [
         {
+          "expr": "max(jvm_gc_pause_seconds_max{job=\"g1gc-app\"}) * 1000",
+          "legendFormat": "G1GC Max Pause (ms)",
+          "refId": "A"
+        },
+        {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
           "legendFormat": "ZGC Gen Max Pause (ms)",
-          "refId": "A"
+          "refId": "B"
         },
         {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-nongen-app\"}) * 1000",
           "legendFormat": "ZGC NonGen Max Pause (ms)",
-          "refId": "B"
+          "refId": "C"
+        },
+        {
+          "expr": "sum(jvm_gc_pause_seconds_count{job=\"g1gc-app\"})",
+          "legendFormat": "G1GC Total Pauses",
+          "refId": "D"
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
           "legendFormat": "ZGC Gen Total Pauses",
-          "refId": "C"
+          "refId": "E"
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\"})",
           "legendFormat": "ZGC NonGen Total Pauses",
-          "refId": "D"
+          "refId": "F"
         }
       ],
       "fieldConfig": {
@@ -317,12 +390,20 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "G1GC Max Pause (ms)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
             "matcher": { "id": "byName", "options": "ZGC Gen Max Pause (ms)" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
           {
             "matcher": { "id": "byName", "options": "ZGC NonGen Max Pause (ms)" },
             "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "G1GC Total Pauses" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
             "matcher": { "id": "byName", "options": "ZGC Gen Total Pauses" },
@@ -341,150 +422,6 @@
         "colorMode": "value",
         "graphMode": "area",
         "textMode": "auto"
-      }
-    },
-    {
-      "title": "ZGC Gen Cycles by Reason",
-      "description": "Why ZGC Generational cycles are triggered",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\", action=\"end of major GC\"}[1m]))",
-          "legendFormat": "Major GC Cycles",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Allocation Rate\"}[1m]))",
-          "legendFormat": "Allocation Rate",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Proactive\"}[1m]))",
-          "legendFormat": "Proactive",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Warmup\"}[1m]))",
-          "legendFormat": "Warmup",
-          "refId": "D"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Allocation Stall\"}[1m]))",
-          "legendFormat": "⚠️ Allocation Stall",
-          "refId": "E"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "⚠️ Allocation Stall" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Allocation Rate" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Proactive" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "light-green", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Warmup" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "title": "ZGC NonGen Cycles by Reason",
-      "description": "Why ZGC Non-Generational cycles are triggered",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", action=\"end of major GC\"}[1m]))",
-          "legendFormat": "Major GC Cycles",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Allocation Rate\"}[1m]))",
-          "legendFormat": "Allocation Rate",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Proactive\"}[1m]))",
-          "legendFormat": "Proactive",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Warmup\"}[1m]))",
-          "legendFormat": "Warmup",
-          "refId": "D"
-        },
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Allocation Stall\"}[1m]))",
-          "legendFormat": "⚠️ Allocation Stall",
-          "refId": "E"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "stacking": {
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "⚠️ Allocation Stall" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Allocation Rate" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Proactive" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Warmup" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
-            ]
-          }
-        ]
       }
     }
   ]
