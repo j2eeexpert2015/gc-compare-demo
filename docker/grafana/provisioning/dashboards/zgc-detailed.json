@@ -4,7 +4,7 @@
   },
   "title": "ZGC Detailed Metrics",
   "uid": "zgc-detailed",
-  "version": 3,
+  "version": 4,
   "timezone": "browser",
   "schemaVersion": 38,
   "refresh": "5s",
@@ -37,30 +37,30 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "auto"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
+            "fillOpacity": 10
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Max Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg Pause" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } }]
+          }
+        ]
       }
     },
     {
-      "title": "GC Collection Rate (QPS)",
-      "description": "Number of GC collections per second",
+      "title": "GC Pause Rate (per second)",
+      "description": "Number of GC pauses per second - ZGC has more frequent tiny pauses",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
           "expr": "sum(rate(jvm_gc_pause_seconds_count{job=\"zgc-app\"}[1m]))",
-          "legendFormat": "Total Collection Rate",
+          "legendFormat": "Pause Rate",
           "refId": "A"
         }
       ],
@@ -72,18 +72,24 @@
             "lineWidth": 2,
             "fillOpacity": 10
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Pause Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
       }
     },
     {
-      "title": "GC Collection Count (Total)",
-      "description": "Cumulative number of GC collections",
+      "title": "GC Pause Count (Total)",
+      "description": "Cumulative number of GC pauses",
       "type": "stat",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "targets": [
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
-          "legendFormat": "Total Collections",
+          "legendFormat": "Total Pauses",
           "refId": "A"
         }
       ],
@@ -91,15 +97,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 5000 },
-              { "color": "orange", "value": 20000 }
-            ]
+            "mode": "fixed",
+            "fixedColor": "green"
           }
         }
       },
@@ -113,33 +112,10 @@
       }
     },
     {
-      "title": "ZGC Cycle Duration (ms)",
-      "description": "Concurrent GC cycle time",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) * 1000",
-          "legendFormat": "Total GC Time",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      }
-    },
-    {
       "title": "Heap Memory Usage (MB)",
-      "description": "ZGC heap utilization",
+      "description": "Heap memory utilization - ZGC manages heap concurrently",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
           "expr": "sum(jvm_memory_used_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
@@ -147,41 +123,8 @@
           "refId": "A"
         },
         {
-          "expr": "max(jvm_memory_committed_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
-          "legendFormat": "Heap Committed",
-          "refId": "B"
-        },
-        {
           "expr": "max(jvm_memory_max_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Max",
-          "refId": "C"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "decmbytes",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      }
-    },
-    {
-      "title": "Memory Reclaimed per Cycle",
-      "description": "Memory freed by GC",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
-      "targets": [
-        {
-          "expr": "sum(jvm_gc_live_data_size_bytes{job=\"zgc-app\"}) / 1024 / 1024",
-          "legendFormat": "Live Data Size",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(jvm_gc_max_data_size_bytes{job=\"zgc-app\"}) / 1024 / 1024",
-          "legendFormat": "Max Data Size",
           "refId": "B"
         }
       ],
@@ -193,110 +136,24 @@
             "lineWidth": 2,
             "fillOpacity": 10
           }
-        }
-      }
-    },
-    {
-      "title": "ZGC Cycles by Reason",
-      "description": "What triggers GC - Minor vs Major cycles",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "targets": [
-        {
-          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Allocation Rate\"}[1m]))",
-          "legendFormat": "Allocation Rate",
-          "refId": "A"
         },
-        {
-          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Warmup\"}[1m]))",
-          "legendFormat": "Warmup",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Proactive\"}[1m]))",
-          "legendFormat": "Proactive",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Allocation Stall\"}[1m]))",
-          "legendFormat": "Allocation Stall",
-          "refId": "D"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "drawStyle": "bars",
-            "lineWidth": 1,
-            "fillOpacity": 50,
-            "stacking": { "mode": "normal" }
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Heap Max" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } }]
           }
-        }
-      }
-    },
-    {
-      "title": "ZGC Cycles by Type (Count)",
-      "description": "Minor vs Major cycle counts",
-      "type": "piechart",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "targets": [
-        {
-          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\", action=\"end of minor GC\"})",
-          "legendFormat": "Minor GC",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\", action=\"end of major GC\"})",
-          "legendFormat": "Major GC",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "pieType": "pie",
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "values": ["value", "percent"]
-        }
-      }
-    },
-    {
-      "title": "Allocation Rate (MB/s)",
-      "description": "Memory allocation throughput",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
-      "targets": [
-        {
-          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024",
-          "legendFormat": "Allocation Rate",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "MBs",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
+        ]
       }
     },
     {
       "title": "Process CPU Usage",
-      "description": "ZGC CPU overhead",
+      "description": "JVM process CPU utilization - ZGC does concurrent work",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
           "expr": "avg(process_cpu_usage{job=\"zgc-app\"})",
@@ -319,14 +176,24 @@
             "lineWidth": 2,
             "fillOpacity": 10
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Process CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "System CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } }]
+          }
+        ]
       }
     },
     {
       "title": "GC Overhead (%)",
-      "description": "Time spent in GC - ZGC should be very low",
+      "description": "Percentage of time spent in GC - ZGC should be near zero",
       "type": "gauge",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "targets": [
         {
           "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m]))",
@@ -338,13 +205,13 @@
         "defaults": {
           "unit": "percentunit",
           "min": 0,
-          "max": 0.1,
+          "max": 0.05,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
               { "color": "yellow", "value": 0.01 },
-              { "color": "red", "value": 0.05 }
+              { "color": "red", "value": 0.03 }
             ]
           }
         }
@@ -356,23 +223,52 @@
       }
     },
     {
-      "title": "HTTP Request Latency (ms)",
-      "description": "API response time percentiles",
+      "title": "Allocation Rate (MB/s)",
+      "description": "Memory allocation throughput",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024",
+          "legendFormat": "Allocation Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MBs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Allocation Rate" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "HTTP Request Latency (ms)",
+      "description": "API response time percentiles - should be consistent",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
           "legendFormat": "P99",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
           "legendFormat": "P95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=~\"/api/memory/.*\"}[1m]))) * 1000",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
           "legendFormat": "P50",
           "refId": "C"
         }
@@ -385,14 +281,28 @@
             "lineWidth": 2,
             "fillOpacity": 10
           }
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "P99" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P95" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P50" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "super-light-green", "mode": "fixed" } }]
+          }
+        ]
       }
     },
     {
-      "title": "ZGC Summary Stats",
+      "title": "ZGC Summary",
       "description": "Key metrics at a glance",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
       "targets": [
         {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
@@ -401,18 +311,27 @@
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
-          "legendFormat": "Total Cycles",
+          "legendFormat": "Total Pauses",
           "refId": "B"
         },
         {
           "expr": "sum(jvm_memory_used_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
           "legendFormat": "Heap Used (MB)",
           "refId": "C"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) * 100",
+          "legendFormat": "GC Overhead (%)",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
         }
       },
       "options": {
