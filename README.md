@@ -198,6 +198,30 @@ curl -X POST "http://localhost:8080/api/memory/sustained?duration=10&rate=5"
 
 ## Troubleshooting
 
+**New dashboards not appearing?**
+- Restart Docker containers to load new dashboard files:
+  ```batch
+  docker-compose restart
+  ```
+- Wait 10-20 seconds for Grafana to reload
+- Refresh the Grafana page in your browser
+
+**Prometheus not scraping new ports (8082)?**
+- Restart Docker to pick up prometheus.yml changes:
+  ```batch
+  docker-compose down
+  docker-compose up -d
+  ```
+- Check Prometheus targets: http://localhost:9090/targets
+
+**Want to clear all metrics data and start fresh?**
+- Remove all stored metrics and restart:
+  ```batch
+  docker-compose down -v
+  docker-compose up -d
+  ```
+- The `-v` flag removes volumes with all historical data
+
 **Prometheus not scraping?**
 - Check `host.docker.internal` resolves (Docker Desktop feature)
 - Verify apps are running on correct ports
