@@ -215,12 +215,12 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/.*\"}[1m]))) * 1000",
           "legendFormat": "G1GC - P99 Latency",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=~\"/api/.*\"}[1m]))) * 1000",
           "legendFormat": "Generational ZGC - P99 Latency",
           "refId": "B"
         }
