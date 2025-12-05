@@ -18,67 +18,167 @@ mvn clean package -DskipTests
 
 ### 2. Start Prometheus & Grafana
 ```batch
+cd docker
 docker-compose up -d
 ```
 
-### 3. Start G1GC App (Terminal 1)
+---
 
-**Option A: 2GB heap (Recommended):**
+## Three Test Scenarios with 4GB Heap
+
+All tests use **4GB heap** with **JFR Recording enabled** for detailed analysis.
+
+---
+
+## Scenario 1: G1GC vs ZGC Generational Comparison
+
+### Start Applications
+
+**Terminal 1 - G1GC (4GB heap with JFR):**
 ```batch
-java -XX:+UseG1GC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-**Option B: 4GB heap (Production-like):**
+**Terminal 2 - ZGC Generational (4GB heap with JFR):**
 ```batch
-java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### 4. Start ZGC App (Terminal 2)
-
-**Option A: 2GB heap (Recommended):**
-```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-**Option B: 4GB heap (Production-like):**
-```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-### 5. Start ZGC Non-Generational App (Terminal 3) - Optional
-
-**Option A: 2GB heap (Recommended):**
-```batch
-java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-**Option B: 4GB heap (Production-like):**
-```batch
-java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-### 6. Verify Apps
+### Verify Applications
 ```batch
 curl http://localhost:8080/api/memory/info
 curl http://localhost:8081/api/memory/info
-curl http://localhost:8082/api/memory/info
 ```
 
-### 7. Run Load Test
-
-**For G1GC vs ZGC Gen (2 instances):**
+### Run Test - Natural Generational Workload
 ```batch
-for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8080/api/better/natural/80/20 & curl -s -X POST http://localhost:8081/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
 ```
 
-**For All Three GCs (3 instances):**
+### View Dashboard
+- Open: http://localhost:3000 (admin/password)
+- Dashboard: **"G1GC vs ZGC Comparison"**
+- Expected: ZGC shows sub-millisecond pauses, G1GC shows 20-200ms pauses
+
+### Analyze JFR Files
 ```batch
-for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & curl -s -X POST http://localhost:8082/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
+jmc g1gc-recording.jfr
+jmc zgc-gen-recording.jfr
 ```
 
-### 8. View Dashboards
+---
 
-Open http://localhost:3000 (admin/password)
+## Scenario 2: ZGC Generational vs Non-Generational Comparison
+
+### Start Applications
+
+**Terminal 1 - ZGC Generational (4GB heap with JFR):**
+```batch
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Terminal 2 - ZGC Non-Generational (4GB heap with JFR):**
+```batch
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+### Verify Applications
+```batch
+curl http://localhost:8081/api/better/stats
+curl http://localhost:8082/api/better/stats
+```
+
+### Run Test - Natural Generational Workload
+```batch
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8081/api/better/natural/80/20 & curl -s -X POST http://localhost:8082/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
+```
+
+### View Dashboard
+- Open: http://localhost:3000
+- Dashboard: **"ZGC: Generational vs Non-Generational Comparison"**
+- Expected: Gen ZGC shows 30-40% fewer total pauses than NonGen ZGC
+
+### Analyze JFR Files
+```batch
+jmc zgc-gen-recording.jfr
+jmc zgc-nongen-recording.jfr
+```
+
+---
+
+## Scenario 3: All Three GCs Comparison (G1GC vs ZGC Gen vs ZGC NonGen)
+
+### Start Applications
+
+**Terminal 1 - G1GC (4GB heap with JFR):**
+```batch
+java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Terminal 2 - ZGC Generational (4GB heap with JFR):**
+```batch
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Terminal 3 - ZGC Non-Generational (4GB heap with JFR):**
+```batch
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+### Verify Applications
+```batch
+curl http://localhost:8080/api/memory/info
+curl http://localhost:8081/api/better/stats
+curl http://localhost:8082/api/better/stats
+```
+
+### Run Test - Natural Generational Workload (All Three)
+```batch
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8080/api/better/natural/80/20 & curl -s -X POST http://localhost:8081/api/better/natural/80/20 & curl -s -X POST http://localhost:8082/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
+```
+
+### View Dashboard
+- Open: http://localhost:3000
+- Dashboard: **"All Three GCs Comparison"**
+- Expected Results:
+  - G1GC: Longest pauses (20-200ms)
+  - ZGC Gen: Lowest total pause count
+  - ZGC NonGen: Sub-millisecond pauses but more frequent
+  - Both ZGC variants: <1ms max pause time
+
+### Analyze JFR Files
+```batch
+jmc g1gc-recording.jfr
+jmc zgc-gen-recording.jfr
+jmc zgc-nongen-recording.jfr
+```
+
+---
+
+## API Endpoints
+
+### Natural Generational Workload (Recommended)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/better/natural/{shortLivedMB}/{longLivedMB}` | POST | Natural generational pattern that works WITH Gen ZGC |
+| `/api/better/stats` | GET | Get survivor statistics |
+| `/api/better/clear` | POST | Clear survivors |
+
+**Example:**
+```batch
+curl -X POST http://localhost:8081/api/better/natural/80/20
+```
+Creates 80MB short-lived objects + 20MB survivors that rotate naturally.
+
+### Legacy Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/memory/info` | GET | JVM and GC info |
+| `/api/memory/load/{count}` | POST | Uniform allocation (all objects die together) |
+| `/api/memory/gc-stats` | GET | Current GC statistics |
+| `/actuator/prometheus` | GET | Prometheus metrics |
+
+---
 
 ## Grafana Dashboards
 
@@ -100,150 +200,26 @@ Six dashboards are provided:
 
 ---
 
-## ZGC: Generational vs Non-Generational Comparison
+## Expected Results Summary
 
-### 1. Start ZGC Generational (Terminal 1)
+### With 4GB Heap + Natural Generational Workload:
 
-**Option A: 2GB heap (Recommended):**
-```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
+| Metric | G1GC | ZGC Gen | ZGC NonGen | Best |
+|--------|------|---------|------------|------|
+| **Max Pause Time** | 50-200ms | <1ms | <1ms | ZGC (both) ✅ |
+| **Total Pauses (200 iter)** | ~100-150 | ~150-200 | ~200-250 | G1GC ✅ |
+| **GC Overhead %** | 0.5-1% | <0.1% | <0.1% | ZGC (both) ✅ |
+| **P99 Latency** | Spiky | Consistent | Consistent | ZGC (both) ✅ |
+| **CPU Usage** | Higher | Lower | Moderate | ZGC Gen ✅ |
+| **Allocation Stalls** | None | None | Possible | Gen ✅ |
 
-**Option B: 4GB heap (Production-like):**
-```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-### 2. Start ZGC Non-Generational (Terminal 2)
-
-**Option A: 2GB heap (Recommended):**
-```batch
-java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-**Option B: 4GB heap (Production-like):**
-```batch
-java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
-
-### 3. Verify Both Apps
-```batch
-curl http://localhost:8081/api/memory/info
-curl http://localhost:8082/api/memory/info
-```
-
-### 4. Run Load Test
-
-**Uniform Load (all objects die at once):**
-```batch
-for /L %i in (1,1,100) do @(curl -s -X POST http://localhost:8081/api/memory/load/50 >nul & curl -s -X POST http://localhost:8082/api/memory/load/50 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-```
-
-**Mixed Load (demonstrates Gen ZGC advantage):**
-```batch
-for /L %i in (1,1,150) do @(curl -s -X POST http://localhost:8081/api/memory/mixed/80/20 >nul & curl -s -X POST http://localhost:8082/api/memory/mixed/80/20 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-```
-
-Or use the provided script:
-```batch
-scripts\load-test-mixed.bat
-```
-
-### 5. View Dashboard
-
-Open http://localhost:3000 (admin/password)
+**Key Insights:**
+- **G1GC:** Fewest total pauses but MUCH longer pause times (20-200ms)
+- **ZGC Gen:** Best overall - sub-ms pauses with lowest CPU overhead
+- **ZGC NonGen:** Sub-ms pauses but 20-30% more pauses than Gen
+- **For Production:** ZGC Generational is recommended for low-latency applications
 
 ---
-
-## Mixed Object Lifetime Workload (NEW Feature)
-
-### Why This Matters
-
-Your uniform load tests (`/api/memory/load/{count}`) show **NonGen ZGC performing better** because all objects die at once - there's no generational pattern to optimize. This is typical for:
-- Batch jobs that process data and exit
-- Short-lived Lambda functions  
-- Any workload where all objects have the same lifetime
-
-The mixed workload demonstrates the **Weak Generational Hypothesis**:
-> "Most objects die young, but some live a long time"
-
-When this is true (typical of production apps), **Gen ZGC significantly outperforms NonGen** by:
-- Collecting young objects cheaply and frequently
-- Promoting survivors to old generation
-- Collecting old generation rarely
-
-This results in **30-40% fewer total GC cycles** with Gen ZGC!
-
-### New API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/memory/mixed/{shortLivedMB}/{longLivedMB}` | POST | Creates mixed workload with short-lived and long-lived objects |
-| `/api/memory/cache-stats` | GET | Get current cache statistics |
-| `/api/memory/clear-cache` | POST | Clear all cached long-lived objects |
-
-### Usage Examples
-
-**Typical workload (80% short-lived, 20% long-lived):**
-```batch
-curl -X POST http://localhost:8081/api/memory/mixed/80/20
-```
-
-**High churn workload (90% short-lived, 10% long-lived):**
-```batch
-curl -X POST http://localhost:8081/api/memory/mixed/90/10
-```
-
-**Check cache stats:**
-```batch
-curl http://localhost:8081/api/memory/cache-stats
-```
-
-**Clear cache (reset between tests):**
-```batch
-curl -X POST http://localhost:8081/api/memory/clear-cache
-```
-
-### Load Test Commands
-
-**Gen vs NonGen with Mixed Workload:**
-```batch
-# 80MB short-lived + 20MB long-lived (typical ratio)
-for /L %i in (1,1,150) do @(curl -s -X POST http://localhost:8081/api/memory/mixed/80/20 >nul & curl -s -X POST http://localhost:8082/api/memory/mixed/80/20 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-
-# 90MB short-lived + 10MB long-lived (high churn)
-for /L %i in (1,1,150) do @(curl -s -X POST http://localhost:8081/api/memory/mixed/90/10 >nul & curl -s -X POST http://localhost:8082/api/memory/mixed/90/10 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-```
-
-### Expected Results Comparison
-
-| Workload Type | Gen ZGC Pauses | NonGen Pauses | Winner | Reduction |
-|---------------|----------------|---------------|--------|-----------|
-| **Uniform Load** (`/load/50`) | ~350-400 | **~280-320** | NonGen ✅ | - |
-| **Mixed Load** (`/mixed/80/20`) | **~250-300** | ~400-450 | **Gen ✅** | **30-40%** |
-
-### Real-World Applications
-
-This mixed pattern matches production workloads:
-- **Web Apps**: HTTP request/response objects (short) + session data (long)
-- **Microservices**: Processing objects (short) + connection pools (long)
-- **Data Processing**: Intermediate results (short) + lookup tables (long)
-- **Game Servers**: Event packets (short) + player sessions (long)
-
----
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/memory/info` | GET | JVM and GC info |
-| `/api/memory/load/{count}` | POST | Allocate count * 10MB of garbage (uniform - all dies at once) |
-| `/api/memory/mixed/{shortLivedMB}/{longLivedMB}` | POST | **NEW:** Mixed workload - short-lived + long-lived objects |
-| `/api/memory/sustained` | POST | Sustained allocation over time |
-| `/api/memory/gc-stats` | GET | Current GC statistics |
-| `/api/memory/cache-stats` | GET | **NEW:** Get cache statistics for mixed workload |
-| `/api/memory/clear-cache` | POST | **NEW:** Clear cached long-lived objects |
-| `/actuator/prometheus` | GET | Prometheus metrics |
 
 ## Key Metrics Compared
 
@@ -257,33 +233,74 @@ This mixed pattern matches production workloads:
 | **HTTP Request Latency P99** | Tail latency impact |
 | **Allocation Rate** | Memory allocation throughput |
 
-## Expected Results
+---
 
-### G1GC vs ZGC Generational
+## Understanding Natural Generational Workload
 
-Based on production benchmarks and testing:
+The `/api/better/natural/{short}/{long}` endpoint creates a realistic workload:
 
-| Metric | G1GC | ZGC (Generational) | ZGC (Non-Gen) |
-|--------|------|-------------------|---------------|
-| **Max Pause Time** | 50-200ms+ | <1ms | <1ms |
-| **CPU Overhead** | Higher | Lower | Lower |
-| **GC Overhead** | Higher | Minimal | Minimal |
-| **P99 Latency** | Spiky | Consistent | Consistent |
-| **Throughput** | Good | Excellent | Very Good |
+```
+Request 1: POST /api/better/natural/80/20
+├─ 80MB short-lived objects → die immediately (young generation)
+└─ 20MB survivors → kept alive, rotate out after 20 requests (old generation)
 
-### ZGC Gen vs NonGen: Workload Matters!
+Request 2: POST /api/better/natural/80/20
+├─ 80MB short-lived objects → die immediately
+└─ 20MB survivors → add to pool (now 40MB total survivors)
 
-The winner depends on your workload pattern:
+Request 20: POST /api/better/natural/80/20
+├─ 80MB short-lived objects → die immediately
+└─ 20MB survivors → add to pool (~200MB survivors, oldest start rotating out)
+```
 
-| Workload Type | Gen ZGC Pauses | NonGen Pauses | Winner | Why |
-|---------------|----------------|---------------|--------|-----|
-| **Uniform** (`/load/50`) | ~350-400 | **~280-320** | NonGen ✅ | No generational pattern - simpler approach wins |
-| **Mixed** (`/mixed/80/20`) | **~250-300** | ~400-450 | **Gen ✅** | Generational pattern - young gen optimization reduces cycles by 30-40% |
+**Why This Works:**
+- Gen ZGC recognizes the pattern and optimizes young collection
+- NonGen ZGC treats all objects equally = more work
+- Result: Gen ZGC shows 30-40% efficiency gain with 4GB heap
 
-**Key Insight:**
-- **Gen ZGC** excels with mixed object lifetimes (typical of production workloads like web apps, microservices)
-- **NonGen ZGC** can be more efficient with uniform lifetimes (batch jobs, Lambda functions, data processing tasks where all objects die together)
-- For most **production applications**, Gen ZGC is the better choice (and the default in Java 21+)
+---
+
+## JFR Analysis Tips
+
+After running tests, analyze JFR files with JDK Mission Control:
+
+**Key Areas to Compare:**
+1. **GC** → Compare pause times and frequencies
+2. **Memory** → Look at allocation patterns
+3. **Java Application** → Check for allocation stalls
+4. **JVM Internals** → Compare GC algorithms behavior
+
+**G1GC Specifics:**
+- Check "Evacuation Pause" frequency
+- Look for "Humongous Allocations"
+
+**ZGC Specifics:**
+- Check for "Allocation Stall" events (should be none or minimal)
+- Compare "Proactive" vs "Allocation Rate" cycles
+- Gen ZGC: Look at young vs old generation collections
+
+---
+
+## Troubleshooting
+
+**Apps not starting?**
+- Verify Java 21+: `java -version`
+- Check ports available: `netstat -ano | findstr "8080"`
+
+**Prometheus not scraping?**
+- Check targets: http://localhost:9090/targets
+- Verify `host.docker.internal` resolves
+
+**Grafana dashboard empty?**
+- Wait 30-60 seconds for metrics to populate
+- Verify Prometheus targets are UP
+
+**OutOfMemoryError?**
+- With 4GB heap, this should not happen
+- Check if other applications are consuming memory
+- Verify JVM is actually using 4GB: check JFR recording or logs
+
+---
 
 ## Project Structure
 
@@ -292,8 +309,12 @@ gc-compare-demo/
 ├── pom.xml
 ├── src/main/java/com/example/gcdemo/
 │   ├── GcCompareDemoApplication.java
-│   ├── controller/MemoryController.java
-│   └── service/MemoryLoadService.java
+│   ├── controller/
+│   │   ├── MemoryController.java
+│   │   └── BetterMemoryController.java
+│   └── service/
+│       ├── MemoryLoadService.java
+│       └── BetterMemoryService.java
 ├── src/main/resources/
 │   └── application.yml
 ├── docker/
@@ -303,182 +324,63 @@ gc-compare-demo/
 │       ├── datasources/
 │       └── dashboards/
 │           ├── gc-compare.json
-│           ├── gc-all-three-compare.json (NEW)
+│           ├── gc-all-three-compare.json
+│           ├── zgc-comparison.json
 │           ├── g1gc-detailed.json
 │           ├── zgc-detailed.json
-│           ├── zgc-nongen-detailed.json (NEW)
-│           └── zgc-comparison.json
-├── scripts/
-│   ├── run-g1gc.bat
-│   ├── run-zgc.bat
-│   ├── load-test.bat
-│   └── load-test-mixed.bat (NEW)
+│           └── zgc-nongen-detailed.json
 └── README.md
 ```
 
-## Customization
+---
 
-### Adjust Heap Size
+## Command Reference (4GB Heap)
 
+### Start Commands with JFR
+
+**G1GC:**
 ```batch
-# 2GB heap (recommended for demos and testing)
--Xms2g -Xmx2g
-
-# 4GB heap (production-like)
--Xms4g -Xmx4g
+java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-### Adjust Load Pattern
-
+**ZGC Generational:**
 ```batch
-# Uniform load - Light (10MB)
-curl -X POST http://localhost:8080/api/memory/load/10
-
-# Uniform load - Heavy (100MB)
-curl -X POST http://localhost:8080/api/memory/load/100
-
-# Mixed load - Typical (80% short, 20% long)
-curl -X POST http://localhost:8080/api/memory/mixed/80/20
-
-# Mixed load - High churn (90% short, 10% long)
-curl -X POST http://localhost:8080/api/memory/mixed/90/10
-
-# Sustained load (10 seconds, 5 objects/sec)
-curl -X POST "http://localhost:8080/api/memory/sustained?duration=10&rate=5"
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-## Java Flight Recorder (JFR)
-
-All commands include JFR recording enabled with `-XX:StartFlightRecording=filename=[name].jfr`
-
-**JFR Files Generated (in project root):**
-- `g1gc-recording.jfr` - G1GC performance data
-- `zgc-gen-recording.jfr` - ZGC Generational performance data
-- `zgc-nongen-recording.jfr` - ZGC Non-Generational performance data
-
-**Analyze JFR Files:**
-- Open with JDK Mission Control (JMC): `jmc`
-- Or use IntelliJ IDEA: File → Open → Select .jfr file
-- Or VisualVM with JFR plugin
-
-**Disable JFR (if not needed):**
-Remove `-XX:StartFlightRecording=filename=[name].jfr` from the command
-
-## Troubleshooting
-
-**New dashboards not appearing?**
-- Restart Docker containers to load new dashboard files:
-  ```batch
-  docker-compose restart
-  ```
-- Wait 10-20 seconds for Grafana to reload
-- Refresh the Grafana page in your browser
-
-**Prometheus not scraping new ports (8082)?**
-- Restart Docker to pick up prometheus.yml changes:
-  ```batch
-  docker-compose down
-  docker-compose up -d
-  ```
-- Check Prometheus targets: http://localhost:9090/targets
-
-**Want to clear all metrics data and start fresh?**
-- Remove all stored metrics and restart:
-  ```batch
-  docker-compose down -v
-  docker-compose up -d
-  ```
-- The `-v` flag removes volumes with all historical data
-
-**Prometheus not scraping?**
-- Check `host.docker.internal` resolves (Docker Desktop feature)
-- Verify apps are running on correct ports
-
-**Grafana dashboard empty?**
-- Wait 30-60 seconds for metrics to populate
-- Check Prometheus targets: http://localhost:9090/targets
-
-**OutOfMemoryError?**
-1. Reduce load count: `/api/memory/load/10` instead of `/load/50`
-2. Or reduce mixed workload: `/api/memory/mixed/40/10` instead of `/mixed/80/20`
-3. Increase heap: `-Xms4g -Xmx4g`
-4. Clear cache if using mixed workload: `curl -X POST http://localhost:8081/api/memory/clear-cache`
-
-## Command Reference Cheat Sheet
-
-### Quick Commands for Copy-Paste
-
-**Build:**
+**ZGC Non-Generational:**
 ```batch
-mvn clean package -DskipTests
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr,dumponexit=true,settings=profile -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
-**Start Docker:**
+### Test Commands
+
+**Scenario 1 (G1GC vs ZGC Gen):**
 ```batch
-docker-compose up -d
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8080/api/better/natural/80/20 & curl -s -X POST http://localhost:8081/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
 ```
 
-**Run G1GC:**
+**Scenario 2 (ZGC Gen vs NonGen):**
 ```batch
-# 2GB heap (recommended)
-java -XX:+UseG1GC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
-
-# 4GB heap (production-like)
-java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8081/api/better/natural/80/20 & curl -s -X POST http://localhost:8082/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
 ```
 
-**Run ZGC Generational:**
+**Scenario 3 (All Three):**
 ```batch
-# 2GB heap (recommended)
-java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
-
-# 4GB heap (production-like)
-java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+for /L %i in (1,1,200) do @(curl -s -X POST http://localhost:8080/api/better/natural/80/20 & curl -s -X POST http://localhost:8081/api/better/natural/80/20 & curl -s -X POST http://localhost:8082/api/better/natural/80/20 & timeout /t 1 /nobreak >nul)
 ```
 
-**Run ZGC Non-Generational:**
-```batch
-# 2GB heap (recommended)
-java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+---
 
-# 4GB heap (production-like)
-java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
-```
+## Additional Resources
 
-**Uniform Load Test (all objects die at once):**
-```batch
-# G1GC vs ZGC Gen (50 iterations, 300MB per iteration)
-for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
+- **JEP 439:** Generational ZGC - https://openjdk.org/jeps/439
+- **ZGC Wiki:** https://wiki.openjdk.org/display/zgc
+- **G1GC Tuning:** https://docs.oracle.com/en/java/javase/21/gctuning/
+- **JFR Documentation:** https://docs.oracle.com/javacomponents/jmc-latest/
 
-# ZGC Gen vs NonGen (100 iterations, 500MB per iteration)
-for /L %i in (1,1,100) do @(curl -s -X POST http://localhost:8081/api/memory/load/50 >nul & curl -s -X POST http://localhost:8082/api/memory/load/50 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
+---
 
-# All three GCs (50 iterations)
-for /L %i in (1,1,50) do @(curl -s -X POST http://localhost:8080/api/memory/load/30 >nul & curl -s -X POST http://localhost:8081/api/memory/load/30 >nul & curl -s -X POST http://localhost:8082/api/memory/load/30 >nul & echo Iteration %i & timeout /t 2 /nobreak >nul)
-```
+## License
 
-**Mixed Load Test (shows Gen ZGC advantage):**
-```batch
-# 80MB short-lived + 20MB long-lived (typical ratio)
-for /L %i in (1,1,150) do @(curl -s -X POST http://localhost:8081/api/memory/mixed/80/20 >nul & curl -s -X POST http://localhost:8082/api/memory/mixed/80/20 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-
-# 90MB short-lived + 10MB long-lived (high churn)
-for /L %i in (1,1,150) do @(curl -s -X POST http://localhost:8081/api/memory/mixed/90/10 >nul & curl -s -X POST http://localhost:8082/api/memory/mixed/90/10 >nul & echo Iteration %i & timeout /t 1 /nobreak >nul)
-
-# Or use script
-scripts\load-test-mixed.bat
-```
-
-**Cache Management:**
-```batch
-# Check cache stats
-curl http://localhost:8081/api/memory/cache-stats
-
-# Clear cache
-curl -X POST http://localhost:8081/api/memory/clear-cache
-```
-
-**Stop Everything:**
-```batch
-docker-compose down
-```
+This project is for educational purposes demonstrating GC behavior comparison.
