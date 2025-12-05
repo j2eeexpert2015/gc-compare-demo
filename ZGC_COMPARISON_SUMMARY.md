@@ -4,7 +4,7 @@
 
 ### 1. scripts/run-zgc-nongen.bat
 - Runs ZGC in Non-Generational mode on port 8082
-- Same heap settings as other instances (512MB)
+- Heap options: 2GB (recommended) or 4GB (production-like)
 
 ### 2. docker/prometheus.yml (UPDATED)
 - Now scrapes 3 instances:
@@ -34,11 +34,17 @@
 
 2. Start both ZGC instances:
    ```batch
-   # Terminal 1 - ZGC Generational
-   java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+   # Terminal 1 - ZGC Generational (2GB recommended)
+   java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
    
-   # Terminal 2 - ZGC Non-Generational
-   java -XX:+UseZGC -Xms512m -Xmx512m -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+   # Terminal 1 - ZGC Generational (4GB production-like)
+   java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+   
+   # Terminal 2 - ZGC Non-Generational (2GB recommended)
+   java -XX:+UseZGC -Xms2g -Xmx2g -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+   
+   # Terminal 2 - ZGC Non-Generational (4GB production-like)
+   java -XX:+UseZGC -Xms4g -Xmx4g -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
    ```
 
 3. Run load test comparing both ZGCs:
