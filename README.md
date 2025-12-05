@@ -22,18 +22,39 @@ docker-compose up -d
 ```
 
 ### 3. Start G1GC App (Terminal 1)
+
+**Option A: 2GB heap (Recommended):**
 ```batch
-java -XX:+UseG1GC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseG1GC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Option B: 4GB heap (Production-like):**
+```batch
+java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 4. Start ZGC App (Terminal 2)
+
+**Option A: 2GB heap (Recommended):**
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Option B: 4GB heap (Production-like):**
+```batch
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 5. Start ZGC Non-Generational App (Terminal 3) - Optional
+
+**Option A: 2GB heap (Recommended):**
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Option B: 4GB heap (Production-like):**
+```batch
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 6. Verify Apps
@@ -82,13 +103,27 @@ Six dashboards are provided:
 ## ZGC: Generational vs Non-Generational Comparison
 
 ### 1. Start ZGC Generational (Terminal 1)
+
+**Option A: 2GB heap (Recommended):**
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Option B: 4GB heap (Production-like):**
+```batch
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-gen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 2. Start ZGC Non-Generational (Terminal 2)
+
+**Option A: 2GB heap (Recommended):**
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+```
+
+**Option B: 4GB heap (Production-like):**
+```batch
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 ### 3. Verify Both Apps
@@ -176,11 +211,11 @@ gc-compare-demo/
 ### Adjust Heap Size
 
 ```batch
-# Smaller heap = more GC pressure (better for demos)
--Xms256m -Xmx256m
+# 2GB heap (recommended)
+-Xms2g -Xmx2g
 
-# Larger heap = less frequent GC
--Xms1g -Xmx1g
+# 4GB heap (production-like)
+-Xms4g -Xmx4g
 ```
 
 ### Adjust Load Pattern
@@ -249,7 +284,7 @@ Remove `-XX:StartFlightRecording=filename=[name].jfr` from the command
 
 **OutOfMemoryError?**
 1. Reduce load count: `/api/memory/load/10` instead of `/load/100`
-2. Increase heap: `-Xms1g -Xmx1g`
+2. Increase heap: `-Xms4g -Xmx4g`
 
 ## Command Reference Cheat Sheet
 
@@ -267,17 +302,29 @@ docker-compose up -d
 
 **Run G1GC:**
 ```batch
-java -XX:+UseG1GC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+# 2GB heap (recommended)
+java -XX:+UseG1GC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
+
+# 4GB heap (production-like)
+java -XX:+UseG1GC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=g1gc-recording.jfr -Dserver.port=8080 -Dspring.application.name=g1gc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Run ZGC:**
 ```batch
-java -XX:+UseZGC -XX:+ZGenerational -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+# 2GB heap (recommended)
+java -XX:+UseZGC -XX:+ZGenerational -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
+
+# 4GB heap (production-like)
+java -XX:+UseZGC -XX:+ZGenerational -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-gen-recording.jfr -Dserver.port=8081 -Dspring.application.name=zgc-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Run ZGC Non-Generational:**
 ```batch
-java -XX:+UseZGC -Xms512m -Xmx512m -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+# 2GB heap (recommended)
+java -XX:+UseZGC -Xms2g -Xmx2g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
+
+# 4GB heap (production-like)
+java -XX:+UseZGC -Xms4g -Xmx4g -XX:StartFlightRecording=filename=zgc-nongen-recording.jfr -Dserver.port=8082 -Dspring.application.name=zgc-nongen-demo -jar target\gc-compare-demo-1.0.0.jar
 ```
 
 **Load Test (30 iterations):**
