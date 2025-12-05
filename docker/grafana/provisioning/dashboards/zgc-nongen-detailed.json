@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "title": "ZGC Non-Generational Detailed Metrics",
+  "title": "ZGC Detailed Metrics",
   "uid": "zgc-nongen-detailed",
   "version": 4,
   "timezone": "browser",
@@ -12,11 +12,11 @@
     "from": "now-15m",
     "to": "now"
   },
-  "tags": ["gc", "zgc", "nongen", "jvm"],
+  "tags": ["gc", "zgc", "jvm"],
   "panels": [
     {
       "title": "GC Pause Time (ms)",
-      "description": "Stop-the-world pause duration - ZGC NonGen target: <1ms",
+      "description": "Stop-the-world pause duration - ZGC target: <1ms",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "targets": [
@@ -54,7 +54,7 @@
     },
     {
       "title": "GC Pause Rate (per second)",
-      "description": "Number of GC pauses per second - NonGen may have different pattern than Generational",
+      "description": "Number of GC pauses per second - ZGC may have different pattern than Generational ZGC",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "targets": [
@@ -113,7 +113,7 @@
     },
     {
       "title": "Heap Memory Usage (MB)",
-      "description": "Heap memory utilization - NonGen treats all objects uniformly",
+      "description": "Heap memory utilization - ZGC treats all objects uniformly",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
@@ -151,7 +151,7 @@
     },
     {
       "title": "Process CPU Usage",
-      "description": "JVM process CPU utilization - NonGen does concurrent work",
+      "description": "JVM process CPU utilization - ZGC does concurrent work",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
@@ -191,7 +191,7 @@
     },
     {
       "title": "GC Overhead (%)",
-      "description": "Percentage of time spent in GC - NonGen should be near zero",
+      "description": "Percentage of time spent in GC - ZGC should be near zero",
       "type": "gauge",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "targets": [
@@ -299,7 +299,7 @@
       }
     },
     {
-      "title": "ZGC NonGen Cycles by Reason",
+      "title": "ZGC Cycles by Reason",
       "description": "Why ZGC cycles are triggered - Allocation Rate, Proactive, Warmup, etc.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
@@ -371,7 +371,7 @@
       }
     },
     {
-      "title": "ZGC NonGen Summary",
+      "title": "ZGC Summary",
       "description": "Key metrics at a glance",
       "type": "stat",
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 38 },

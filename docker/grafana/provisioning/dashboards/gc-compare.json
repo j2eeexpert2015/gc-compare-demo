@@ -27,7 +27,7 @@
         },
         {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
-          "legendFormat": "ZGC - Max Pause",
+          "legendFormat": "Generational ZGC - Max Pause",
           "refId": "B"
         }
       ],
@@ -48,7 +48,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - Max Pause" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - Max Pause" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -67,7 +67,7 @@
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
-          "legendFormat": "ZGC - Total Pauses",
+          "legendFormat": "Generational ZGC - Total Pauses",
           "refId": "B"
         }
       ],
@@ -86,7 +86,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - Total Pauses" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - Total Pauses" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -105,7 +105,7 @@
         },
         {
           "expr": "sum(jvm_memory_used_bytes{job=\"zgc-app\", area=\"heap\"}) / 1024 / 1024",
-          "legendFormat": "ZGC - Heap Used",
+          "legendFormat": "Generational ZGC - Heap Used",
           "refId": "B"
         }
       ],
@@ -124,7 +124,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - Heap Used" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - Heap Used" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -143,7 +143,7 @@
         },
         {
           "expr": "avg(process_cpu_usage{job=\"zgc-app\"})",
-          "legendFormat": "ZGC - CPU",
+          "legendFormat": "Generational ZGC - CPU",
           "refId": "B"
         }
       ],
@@ -164,7 +164,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - CPU" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - CPU" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -183,7 +183,7 @@
         },
         {
           "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"zgc-app\"}[1m])) * 100",
-          "legendFormat": "ZGC - Overhead %",
+          "legendFormat": "Generational ZGC - Overhead %",
           "refId": "B"
         }
       ],
@@ -202,7 +202,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - Overhead %" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - Overhead %" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -221,7 +221,7 @@
         },
         {
           "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=\"/api/memory/load/{count}\"}[1m]))) * 1000",
-          "legendFormat": "ZGC - P99 Latency",
+          "legendFormat": "Generational ZGC - P99 Latency",
           "refId": "B"
         }
       ],
@@ -240,7 +240,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - P99 Latency" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - P99 Latency" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -259,7 +259,7 @@
         },
         {
           "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024",
-          "legendFormat": "ZGC - Allocation Rate",
+          "legendFormat": "Generational ZGC - Allocation Rate",
           "refId": "B"
         }
       ],
@@ -278,7 +278,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC - Allocation Rate" },
+            "matcher": { "id": "byName", "options": "Generational ZGC - Allocation Rate" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]
@@ -297,7 +297,7 @@
         },
         {
           "expr": "max(jvm_gc_pause_seconds_max{job=\"zgc-app\"}) * 1000",
-          "legendFormat": "ZGC Max Pause (ms)",
+          "legendFormat": "Generational ZGC Max Pause (ms)",
           "refId": "B"
         },
         {
@@ -307,7 +307,7 @@
         },
         {
           "expr": "sum(jvm_gc_pause_seconds_count{job=\"zgc-app\"})",
-          "legendFormat": "ZGC Total Pauses",
+          "legendFormat": "Generational ZGC Total Pauses",
           "refId": "D"
         }
       ],
@@ -321,7 +321,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC Max Pause (ms)" },
+            "matcher": { "id": "byName", "options": "Generational ZGC Max Pause (ms)" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           },
           {
@@ -329,7 +329,7 @@
             "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
           },
           {
-            "matcher": { "id": "byName", "options": "ZGC Total Pauses" },
+            "matcher": { "id": "byName", "options": "Generational ZGC Total Pauses" },
             "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
           }
         ]

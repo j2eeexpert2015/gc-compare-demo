@@ -2,8 +2,8 @@
   "annotations": {
     "list": []
   },
-  "title": "ZGC Detailed Metrics",
-  "uid": "zgc-detailed",
+  "title": "Generational ZGC Detailed Metrics",
+  "uid": "generational-zgc-detailed",
   "version": 5,
   "timezone": "browser",
   "schemaVersion": 38,
@@ -12,11 +12,11 @@
     "from": "now-15m",
     "to": "now"
   },
-  "tags": ["gc", "zgc", "jvm"],
+  "tags": ["gc", "zgc", "generational", "jvm"],
   "panels": [
     {
       "title": "GC Pause Time (µs)",
-      "description": "Stop-the-world pause duration - ZGC target: <1000µs (1ms)",
+      "description": "Stop-the-world pause duration - Generational ZGC target: <1000µs (1ms)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "targets": [
@@ -84,7 +84,7 @@
     },
     {
       "title": "GC Pause Rate (per second)",
-      "description": "Number of GC pauses per second - ZGC has more frequent tiny pauses",
+      "description": "Number of GC pauses per second - Generational ZGC has more frequent tiny pauses",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "targets": [
@@ -113,7 +113,7 @@
     },
     {
       "title": "Heap Memory Usage (MB)",
-      "description": "Heap memory utilization - ZGC manages heap concurrently",
+      "description": "Heap memory utilization - Generational ZGC manages heap concurrently",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
@@ -151,7 +151,7 @@
     },
     {
       "title": "Process CPU Usage",
-      "description": "JVM process CPU utilization - ZGC does concurrent work",
+      "description": "JVM process CPU utilization - Generational ZGC does concurrent work",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
@@ -191,7 +191,7 @@
     },
     {
       "title": "GC Overhead (%) - Lower is Better",
-      "description": "Percentage of time spent in GC pauses - ZGC should be near zero",
+      "description": "Percentage of time spent in GC pauses - Generational ZGC should be near zero",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
@@ -220,7 +220,7 @@
     },
     {
       "title": "HTTP Request Latency P99 (ms)",
-      "description": "Tail latency - should be consistent with ZGC",
+      "description": "Tail latency - should be consistent with Generational ZGC",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
@@ -295,8 +295,8 @@
       }
     },
     {
-      "title": "ZGC Cycles by Reason",
-      "description": "Why GC was triggered - Allocation Stall means ZGC couldn't keep up!",
+      "title": "Generational ZGC Cycles by Reason",
+      "description": "Why GC was triggered - Allocation Stall means Generational ZGC couldn't keep up!",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "targets": [
@@ -370,7 +370,7 @@
       }
     },
     {
-      "title": "ZGC Summary",
+      "title": "Generational ZGC Summary",
       "description": "Key metrics at a glance",
       "type": "stat",
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 32 },
