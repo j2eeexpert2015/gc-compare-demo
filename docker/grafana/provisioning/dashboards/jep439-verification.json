@@ -1,0 +1,212 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "title": "JEP 439 Verification Protocol",
+  "uid": "jep-439-verify",
+  "version": 2,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "tags": ["jep439", "zgc", "benchmark"],
+  "panels": [
+    {
+      "title": "1. SAFETY: Allocation Stalls (Count)",
+      "description": "JEP 439 Claim: 'Lower risks of allocation stalls'. \n\nTarget: MUST BE 0 (Empty is Good).\nIf this chart shows bars, the GC is failing to keep up.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-app\", cause=\"Allocation Stall\"}[1m]))",
+          "legendFormat": "Generational ZGC (Stalls)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"zgc-nongen-app\", cause=\"Allocation Stall\"}[1m]))",
+          "legendFormat": "ZGC (Stalls)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(jvm_gc_pause_seconds_count{job=\"g1gc-app\", cause=\"Allocation Stall\"}[1m]))",
+          "legendFormat": "G1GC (Stalls)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Generational ZGC (Stalls)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC (Stalls)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "G1GC (Stalls)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "2. EFFICIENCY: Work Done per CPU Cycle",
+      "description": "JEP 439 Claim: 'Lower garbage collection CPU overhead'.\n\nMetric: MB Allocated per 1% of CPU utilized.\nHigher is Better. It means the CPU is spending time on YOUR app, not the GC.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "(sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-app\"}[1m])) / 1024 / 1024) / (avg(process_cpu_usage{job=\"zgc-app\"}) * 100)",
+          "legendFormat": "Generational ZGC (MB / 1% CPU)",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"zgc-nongen-app\"}[1m])) / 1024 / 1024) / (avg(process_cpu_usage{job=\"zgc-nongen-app\"}) * 100)",
+          "legendFormat": "ZGC (MB / 1% CPU)",
+          "refId": "B"
+        },
+        {
+          "expr": "(sum(rate(jvm_gc_memory_allocated_bytes_total{job=\"g1gc-app\"}[1m])) / 1024 / 1024) / (avg(process_cpu_usage{job=\"g1gc-app\"}) * 100)",
+          "legendFormat": "G1GC (MB / 1% CPU)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MB",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 3
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Generational ZGC (MB / 1% CPU)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC (MB / 1% CPU)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "G1GC (MB / 1% CPU)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "3. MICRO-THROUGHPUT: Raw Allocation Cost (µs)",
+      "description": "JEP 439 Claim: 'Without significant throughput reduction'.\n\nMetric: Time taken to allocate objects.\nLower is Better. Shows the 'tax' of the ZGC Barriers.\n(Requires Active Load)",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "expr": "rate(gc_demo_better_allocation_time_seconds_sum{job=\"zgc-app\"}[1m]) / rate(gc_demo_better_allocation_time_seconds_count{job=\"zgc-app\"}[1m]) * 1000000",
+          "legendFormat": "Generational ZGC (Alloc Time)",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(gc_demo_better_allocation_time_seconds_sum{job=\"zgc-nongen-app\"}[1m]) / rate(gc_demo_better_allocation_time_seconds_count{job=\"zgc-nongen-app\"}[1m]) * 1000000",
+          "legendFormat": "ZGC (Alloc Time)",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(gc_demo_better_allocation_time_seconds_sum{job=\"g1gc-app\"}[1m]) / rate(gc_demo_better_allocation_time_seconds_count{job=\"g1gc-app\"}[1m]) * 1000000",
+          "legendFormat": "G1GC (Alloc Time)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Generational ZGC (Alloc Time)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC (Alloc Time)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "G1GC (Alloc Time)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "4. COMPLIANCE: P99.9 Latency vs 1ms Limit",
+      "description": "JEP 439 Claim: 'Pause times should not exceed 1 millisecond'.\n\nThis plots P99.9 latency. If Gen ZGC (Green) stays flat while others spike, the promise is kept.\n(Requires Active Load)",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 10 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.999, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-app\", uri=~\"/api/.*\"}[1m]))) * 1000",
+          "legendFormat": "Gen ZGC (P99.9 Latency)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.999, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"zgc-nongen-app\", uri=~\"/api/.*\"}[1m]))) * 1000",
+          "legendFormat": "ZGC (P99.9 Latency)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.999, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"g1gc-app\", uri=~\"/api/.*\"}[1m]))) * 1000",
+          "legendFormat": "G1GC (P99.9 Latency)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Gen ZGC (P99.9 Latency)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "ZGC (P99.9 Latency)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "G1GC (P99.9 Latency)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      }
+    }
+  ]
+}
